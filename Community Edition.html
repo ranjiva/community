@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legacy Calculator - Complete Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border: #334155;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --elite: #8b5cf6;
+            --special: #ec4899;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+        .engine-status {
+            text-align: center;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 2rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border);
+            display: inline-block;
+            transition: all 0.1s ease;
+        }
+        .status-syncing { color: var(--warning); border-color: var(--warning); }
+        .status-ready { color: var(--success); border-color: var(--success); }
+        
+        .panel {
+            background-color: var(--panel-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.25rem;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .section-title {
+            grid-column: 1 / -1;
+            font-size: 1rem;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin-bottom: -0.5rem;
+        }
+        .calc-button {
+            grid-column: 1 / -1;
+            background-color: var(--accent);
+            color: #ffffff;
+            font-size: 1.25rem;
+            font-weight: bold;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .calc-button:hover {
+            background-color: var(--accent-hover);
+        }
+        .calc-button:active {
+            transform: scale(0.98);
+        }
+        .graph-container {
+            height: 450px;
+            width: 100%;
+            margin-top: 1rem;
+            transition: opacity 0.2s ease;
+        }
+        .readout-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .readout-box {
+            background-color: #0f172a;
+            border: 1px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .readout-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        .readout-stat {
+            font-size: 2.25rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .stat-success { color: var(--success); }
+        .stat-warning { color: var(--warning); }
+        .stat-danger { color: var(--danger); }
+        .stat-elite { color: var(--elite); }
+        .stat-special { color: var(--special); }
+        
+        .info-panel {
+            background-color: #0f172a;
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+        .info-panel h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        .info-panel p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0 0 1rem 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            transition: opacity 0.2s ease;
+        }
+        th, td {
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        th {
+            background-color: #0f172a;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+        td {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .row-header {
+            text-align: left;
+            color: var(--text-main);
+            background-color: #0f172a;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Legacy Calculator</h1>
+    <p class="subtitle">V12 Complete Edition | Native Async Engine + Dynamic Guardrails</p>
+    
+    <div style="text-align: center;">
+        <div id="engineStatus" class="engine-status status-syncing">ENGINE: WAITING FOR INPUT</div>
+    </div>
+
+    <div class="info-panel">
+        <h3>1. The Tool's Mission</h3>
+        <p>
+            This engine stress-tests your retirement plan to answer one specific question: <strong>How much financial Legacy will you leave behind at the end of your life?</strong><br><br>
+            Instead of assuming a steady, safe return, it subjects your assets and spending goals to 1,000 real-world historical market sequences. It calculates exactly how much wealth you will leave behind under average median conditions, and precisely how much you can safely spend without running out of money during a severe, multi-year market crash (like the Great Depression or the Dot-Com bust). All figures are shown in <strong>Today's Pounds</strong> (real purchasing power).
+        </p>
+
+        <h3 style="margin-top: 1.5rem;">2. The Glide Phase</h3>
+        <p>
+            A period of intentional financial freedom between stepping away from a high-stress career and officially reaching Retirement Age. During this phase, you are bridging the gap between a lower "post-exit income" and your actual living expenses. The engine dynamically drains your assets in a strict, tax-efficient sequence: <em>Cash Buffer &rarr; Taxable Stocks &rarr; ISAs &rarr; Pension.</em>
+        </p>
+
+        <h3 style="margin-top: 1.5rem;">3. The Smart Liquidation Guardrail</h3>
+        <p>
+            The engine acts as a proactive financial planner. During normal bull markets, it follows the standard liquidation sequence. However, if the timeline enters a negative crash year, the engine instantly pivots. It stops selling your stocks and immediately drains your <strong>Bond ISA</strong> to pay your bills, preserving your stock share volume for the eventual market recovery.
+        </p>
+        
+        <h3 style="margin-top: 1.5rem;">4. Post-Retirement: The Phased Drawdown</h3>
+        <p>
+            After you reach Retirement Age and pay off your remaining mortgage, the engine steps your spending down through three distinct phases of aging:<br>
+            <strong>• The Go-Go Years:</strong> Max health and activity, heavy travel. Highest spend.<br>
+            <strong>• The Slow-Go Years:</strong> Transitioning closer to home, fewer major trips. Reduced spend.<br>
+            <strong>• The No-Go Years:</strong> Baseline living costs and local activity until your Longevity Horizon.
+        </p>
+
+        <h3 style="margin-top: 1.5rem;">5. The Equity Release Solver</h3>
+        <p>
+            If your requested lifestyle triggers a mathematical failure in a 10th percentile crash, the engine acts as a Capital Solver. It calculates the exact minimum <strong>Equity Release</strong> required at your specified Downsize Age to inject cash, protect your portfolio, and save the plan.
+        </p>
+    </div>
+
+    <div class="panel controls">
+        <div class="section-title">Timeline & Macro Variables</div>
+        <div class="input-group">
+            <label>Glide Start Month</label>
+            <select id="start_month">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5" selected>June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Glide Start Year</label>
+            <input type="number" id="start_year" value="2027">
+        </div>
+        <div class="input-group">
+            <label>Assumed Inflation (%)</label>
+            <input type="number" id="inflation" value="2.5" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>Current Age (Years)</label>
+            <input type="number" id="current_age_years" value="57" step="1">
+        </div>
+        <div class="input-group">
+            <label>Current Age (Months)</label>
+            <input type="number" id="current_age_months" value="0" step="1" min="0" max="11">
+        </div>
+        <div class="input-group">
+            <label>Retirement Age (e.g., 64.0)</label>
+            <input type="number" id="retirement_age" value="64.0" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>Longevity Horizon (Age)</label>
+            <input type="number" id="horizon_age" value="85.0" step="1">
+        </div>
+
+        <div class="section-title" style="margin-top: 0.5rem;">State / Other Pension (In Today's £)</div>
+        <div class="input-group">
+            <label>Pension Start Age</label>
+            <input type="number" id="sp_age" value="67.0" step="1">
+        </div>
+        <div class="input-group" style="grid-column: span 2;">
+            <label>Household State / Other Pension /yr (£)</label>
+            <input type="number" id="sp_amount" value="11500" step="100">
+        </div>
+
+        <div class="section-title" style="margin-top: 0.5rem;">Glide Cash Flow (In Today's £)</div>
+        <div class="input-group">
+            <label>Phase 1 Glide Expenses /mo (£)</label>
+            <input type="number" id="phase1_expenses" value="8671">
+        </div>
+        <div class="input-group">
+            <label>Phase 1 Duration (Months)</label>
+            <input type="number" id="phase1_duration" value="60">
+        </div>
+        <div class="input-group">
+            <label>Phase 2 Glide Expenses /mo (£)</label>
+            <input type="number" id="phase2_expenses" value="4871">
+        </div>
+        <div class="input-group">
+            <label>Glide Base Income /yr (£)</label>
+            <input type="number" id="post_exit_income" value="40000">
+        </div>
+        <div class="input-group" style="grid-column: span 3;">
+            <label>Remaining Mortgage at Retirement (Paid instantly from assets)</label>
+            <input type="number" id="mortgage" value="130000">
+        </div>
+
+        <div class="section-title" style="margin-top: 0.5rem;">Base Plan: Post-Retirement Drawdown (In Today's £)</div>
+        <div class="input-group">
+            <label>Go-Go End Age</label>
+            <input type="number" id="gogo_age" value="73.0" step="1">
+        </div>
+        <div class="input-group">
+            <label>Go-Go Drawdown /mo (£)</label>
+            <input type="number" id="gogo_income" value="8500">
+        </div>
+        <div class="input-group">
+            <label>Slow-Go End Age</label>
+            <input type="number" id="slowgo_age" value="80.0" step="1">
+        </div>
+        <div class="input-group">
+            <label>Slow-Go Drawdown /mo (£)</label>
+            <input type="number" id="slowgo_income" value="5500">
+        </div>
+        <div class="input-group" style="grid-column: span 3;">
+            <label>No-Go Drawdown /mo (£) (Runs to Longevity Horizon)</label>
+            <input type="number" id="nogo_income" value="3500">
+        </div>
+        
+        <div class="section-title" style="margin-top: 0.5rem;">Equity Release / Downsizing (In Today's £)</div>
+        <div class="input-group">
+            <label>Release Age</label>
+            <input type="number" id="injection_age" value="75.0" step="0.1">
+        </div>
+        <div class="input-group" style="grid-column: span 2;">
+            <label>Manual Equity Release Amount (£)</label>
+            <input type="number" id="manual_injection" value="0" step="10000">
+        </div>
+
+        <div class="section-title" style="margin-top: 0.5rem;">Day 1 Portfolio Assets (£)</div>
+        <div class="input-group">
+            <label>Cash Buffer</label>
+            <input type="number" id="cash" value="30000">
+        </div>
+        <div class="input-group">
+            <label>Taxable Stock 1 (Broad)</label>
+            <input type="number" id="stock1" value="0">
+        </div>
+        <div class="input-group">
+            <label>Taxable Stock 2 (Company)</label>
+            <input type="number" id="stock2" value="400000">
+        </div>
+        <div class="input-group">
+            <label>ISA 1 (Growth / Equities)</label>
+            <input type="number" id="isa1" value="23000">
+        </div>
+        <div class="input-group">
+            <label>ISA 2 (Defensive / Bonds)</label>
+            <input type="number" id="isa2" value="107000">
+        </div>
+        <div class="input-group">
+            <label>Pension / SIPP</label>
+            <input type="number" id="pension" value="630000">
+        </div>
+
+        <div class="section-title" style="margin-top: 0.5rem;">Corporate Good-Leaver RSUs</div>
+        <div class="input-group">
+            <label>Total Unvested (Gross £)</label>
+            <input type="number" id="unvested_rsus" value="90000">
+        </div>
+        <div class="input-group">
+            <label>Annual Vesting Month</label>
+            <select id="rsu_month">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10" selected>November</option>
+                <option value="11">December</option>
+            </select>
+        </div>
+        <div class="input-group" style="grid-column: span 5;">
+            <label>Vesting Schedule % (Comma Separated)</label>
+            <input type="text" id="rsu_schedule" value="50, 33.3, 16.7" placeholder="e.g., 50, 30, 20">
+        </div>
+
+        <button class="calc-button" onclick="runEngineSequence()">Calculate Plan</button>
+    </div>
+
+    <div class="panel">
+        <div class="controls" style="margin-bottom: 0;">
+            <div class="section-title" style="border: none; padding: 0;">Base Plan Depletion Sequence (The 50th Percentile Real Timeline)</div>
+        </div>
+        
+        <div class="graph-container" id="chartDimmer">
+            <canvas id="detChart"></canvas>
+        </div>
+
+        <div class="readout-grid">
+            <div class="readout-box">
+                <div class="readout-title">Base Plan: Final Legacy</div>
+                <div class="readout-stat" id="legacyReadout">£0</div>
+                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem;">Projected surplus at Age <span id="lbl_readout_age">85</span> under median (50th percentile) conditions.</div>
+            </div>
+            <div class="readout-box" style="border-color: var(--warning);">
+                <div class="readout-title">Crash-Proof Go-Go (10th)</div>
+                <div class="readout-stat stat-warning" id="safeGogoReadout">£0 / mo</div>
+                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem;">Maximum safe Go-Go spend if you experience a Great Depression-style market sequence.</div>
+            </div>
+            <div class="readout-box" style="border-color: var(--success);">
+                <div class="readout-title">Median Expected Go-Go (50th)</div>
+                <div class="readout-stat stat-success" id="medianGogoReadout">£0 / mo</div>
+                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem;">Maximum sustainable Go-Go spend if the market delivers historically average returns.</div>
+            </div>
+            <div class="readout-box" style="border-color: var(--special);">
+                <div class="readout-title">Required Equity Release (10th)</div>
+                <div class="readout-stat stat-special" id="reqInjectionReadout">£0</div>
+                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem;">Capital needed at Age <span id="lbl_inj_age">75</span> to survive a crash with your exact requested lifestyle.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" style="padding: 0; border: none; background: transparent; box-shadow: none;">
+        <table id="matrixDimmer">
+            <thead>
+                <tr>
+                    <th>Drawdown Stress Test</th>
+                    <th>10th Percentile<br>(Bad Luck / Crash)</th>
+                    <th>50th Percentile<br>(Median Reality)</th>
+                    <th>90th Percentile<br>(Good Luck / Bull)</th>
+                </tr>
+            </thead>
+            <tbody id="matrixBody">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+    const NUM_SIMULATIONS = 1000;
+    
+    // --- 100-YEAR PRIOR: S&P 500 Historical Annual Returns (1928 - 2023) ---
+    const historical_prior = [
+        0.438, -0.083, -0.251, -0.438, -0.086, 0.499, -0.011, 0.467, 0.319, -0.353, 
+        0.292, -0.011, -0.106, -0.127, 0.191, 0.250, 0.190, 0.358, -0.081, 0.052, 
+        0.057, 0.183, 0.308, 0.236, 0.181, -0.012, 0.525, 0.326, 0.065, -0.104, 
+        0.433, 0.118, 0.003, 0.266, -0.088, 0.226, 0.164, 0.124, -0.100, 0.238, 
+        0.108, -0.083, 0.035, 0.141, 0.187, -0.143, -0.259, 0.370, 0.238, -0.070, 
+        0.065, 0.184, 0.317, -0.047, 0.204, 0.223, 0.060, 0.310, 0.184, 0.051, 
+        0.163, 0.313, -0.032, 0.300, 0.074, 0.099, 0.013, 0.372, 0.226, 0.331, 
+        0.283, 0.208, -0.090, -0.118, -0.220, 0.283, 0.107, 0.048, 0.156, 0.054, 
+        -0.365, 0.259, 0.148, 0.021, 0.158, 0.321, 0.135, 0.013, 0.119, 0.216, 
+        -0.042, 0.312, 0.180, 0.284, -0.181, 0.242
+    ];
+
+    function calculateUKTax(income) {
+        let allowance = Math.max(0, 12570 - Math.max(0, (income - 100000) / 2));
+        let taxable = Math.max(0, income - allowance);
+        let tax = 0;
+        if (taxable <= 37700) { 
+            tax += taxable * 0.20; 
+        } else {
+            tax += 37700 * 0.20;
+            let remaining = taxable - 37700;
+            if (remaining <= 87440) { tax += remaining * 0.40; } 
+            else { tax += 87440 * 0.40 + (remaining - 87440) * 0.45; }
+        }
+        let ni = 0;
+        if (income > 12570) ni += Math.min(income - 12570, 37700) * 0.08;
+        if (income > 50270) ni += (income - 50270) * 0.02;
+        return tax + ni;
+    }
+
+    function generateRandomMatrix(months_total) {
+        let rand_matrix = [];
+        for(let s = 0; s < NUM_SIMULATIONS; s++) {
+            let sim_rands = [];
+            let current_historical_index = Math.floor(Math.random() * historical_prior.length);
+            for(let m = 1; m <= months_total; m++) {
+                if ((m - 1) % 60 === 0 && m !== 1) {
+                    current_historical_index = Math.floor(Math.random() * historical_prior.length);
+                } else if ((m - 1) % 12 === 0 && m !== 1) {
+                    current_historical_index = (current_historical_index + 1) % historical_prior.length;
+                }
+                sim_rands.push(current_historical_index);
+            }
+            rand_matrix.push(sim_rands);
+        }
+        return rand_matrix;
+    }
+
+    // --- V12: High Performance Native Engine with Dynamic Guardrails ---
+    function runMonteCarlo(spend_offset, test_gogo_override, rand_matrix, isFastMode, payload, injection_override = null, precalc_returns) {
+        let cash_in = payload.cash;
+        let stock1_in = payload.stock1;
+        let stock2_in = payload.stock2;
+        let isa1_in = payload.isa1;
+        let isa2_in = payload.isa2;
+        let pen_in = payload.pension;
+        
+        let unvested_total = payload.unvested_rsus;
+        let rsu_month = payload.rsu_month;
+        let raw_ratios = payload.rsu_schedule.split(',').map(s => parseFloat(s.trim()) / 100);
+        if (raw_ratios.some(isNaN)) raw_ratios = [1]; 
+
+        let start_month = payload.start_month;
+        let start_year = payload.start_year;
+        
+        let current_age = payload.current_age_years + (payload.current_age_months / 12);
+        let retirement_age = payload.retirement_age;
+        let horizon_age = payload.horizon_age;
+        
+        let glide_duration = Math.max(1, Math.round((retirement_age - current_age) * 12));
+        let plan_duration = Math.max(1, Math.round((horizon_age - retirement_age) * 12));
+        let months_total = glide_duration + plan_duration;
+        
+        let phase1_expenses = payload.phase1_expenses;
+        let phase1_duration = payload.phase1_duration;
+        let phase2_expenses = payload.phase2_expenses;
+        let mortgage_amt = payload.mortgage;
+        let annual_income = payload.post_exit_income;
+        let net_income_monthly = (annual_income - calculateUKTax(annual_income)) / 12;
+
+        let sp_age = payload.sp_age;
+        let sp_monthly = payload.sp_amount / 12;
+
+        let m_injection = Math.max(1, Math.round((payload.injection_age - current_age) * 12));
+        let active_injection = (injection_override !== null) ? injection_override : payload.manual_injection;
+
+        let gogo_age = payload.gogo_age;
+        let m_gogo = Math.max(0, Math.round((gogo_age - retirement_age) * 12));
+        
+        let slowgo_age = payload.slowgo_age;
+        let m_slowgo = Math.max(0, Math.round((slowgo_age - gogo_age) * 12));
+
+        let gogo_income = payload.gogo_income + spend_offset;
+        let slowgo_income = payload.slowgo_income + spend_offset;
+        let nogo_income = payload.nogo_income + spend_offset;
+
+        if (isFastMode && test_gogo_override > 0) {
+            gogo_income = test_gogo_override;
+            slowgo_income = payload.slowgo_income;
+            nogo_income = payload.nogo_income;
+        }
+        
+        let simulations = [];
+        let ret_cash = precalc_returns.ret_cash;
+        let ret_i2 = precalc_returns.ret_i2;
+        let returns_table = precalc_returns.table;
+
+        for (let sim = 0; sim < NUM_SIMULATIONS; sim++) {
+            let cash = cash_in, stock1 = stock1_in, stock2 = stock2_in, isa1 = isa1_in, isa2 = isa2_in, pen = pen_in;
+            let currentSimDate = new Date(start_year, start_month, 1);
+            let vesting_index = 0;
+            let glide_failed = false;
+
+            let tracking = null;
+            if (!isFastMode) {
+                tracking = { 
+                    cash_path: [cash], stock1_path: [stock1], stock2_path: [stock2], 
+                    isa1_path: [isa1], isa2_path: [isa2], pen_path: [pen] 
+                };
+            }
+
+            for (let m = 1; m <= months_total; m++) {
+                
+                let pC = returns_table[rand_matrix[sim][m - 1]];
+                let is_market_down = pC.is_down;
+
+                stock1 += stock1 * pC.s1;  
+                stock2 += stock2 * pC.s2;  
+                isa1 += isa1 * pC.i1;      
+                pen += pen * pC.pen;       
+                cash += cash * ret_cash; 
+                isa2 += isa2 * ret_i2;     
+
+                currentSimDate.setMonth(currentSimDate.getMonth() + 1);
+                let current_sim_age = current_age + (m / 12);
+                
+                if (currentSimDate.getMonth() === rsu_month && vesting_index < raw_ratios.length) {
+                    let gross_vest = unvested_total * raw_ratios[vesting_index];
+                    let tax_on_vest = calculateUKTax(annual_income + gross_vest) - calculateUKTax(annual_income);
+                    stock2 += Math.max(0, gross_vest - tax_on_vest); 
+                    vesting_index++;
+                }
+
+                if (m === m_injection) {
+                    cash += active_injection;
+                }
+
+                let burn = 0;
+                if (m <= glide_duration) {
+                    let current_expenses = (m <= phase1_duration) ? phase1_expenses : phase2_expenses;
+                    burn = current_expenses - net_income_monthly;
+                } else {
+                    let post_retire_m = m - glide_duration;
+                    if (post_retire_m <= m_gogo) burn = gogo_income;
+                    else if (post_retire_m <= m_gogo + m_slowgo) burn = slowgo_income;
+                    else burn = nogo_income;
+                }
+
+                if (current_sim_age >= sp_age) burn -= sp_monthly;
+
+                if (m === glide_duration + 1) {
+                    let mort = mortgage_amt;
+                    let p_c = Math.min(cash, mort); cash -= p_c; mort -= p_c;
+                    let p_s1 = Math.min(stock1, mort); stock1 -= p_s1; mort -= p_s1;
+                    let p_s2 = Math.min(stock2, mort); stock2 -= p_s2; mort -= p_s2;
+                    let p_i1 = Math.min(isa1, mort); isa1 -= p_i1; mort -= p_i1;
+                    let p_i2 = Math.min(isa2, mort); isa2 -= p_i2; mort -= p_i2;
+                    let p_p = Math.min(pen * 0.25, mort); pen -= p_p; mort -= p_p; 
+                    if(mort > 0) pen -= mort * 1.25; 
+                }
+
+                if (burn < 0) { cash += Math.abs(burn); burn = 0; }
+                if (burn > 0) {
+                    if (cash >= burn) { cash -= burn; } 
+                    else {
+                        let r1 = burn - cash; cash = 0;
+                        
+                        // Guardrail Architecture: Pivot on Negative Returns
+                        if (is_market_down) {
+                            if (isa2 >= r1) { isa2 -= r1; } 
+                            else {
+                                let r2 = r1 - isa2; isa2 = 0;
+                                let req_s1 = r2 * 1.10; 
+                                if (stock1 >= req_s1) { stock1 -= req_s1; } 
+                                else {
+                                    let r3 = req_s1 - stock1; stock1 = 0;
+                                    let req_s2 = r3 * 1.10; 
+                                    if (stock2 >= req_s2) { stock2 -= req_s2; }
+                                    else {
+                                        let r4 = req_s2 - stock2; stock2 = 0;
+                                        if (isa1 >= r4) { isa1 -= r4; } 
+                                        else {
+                                            let r5 = r4 - isa1; isa1 = 0;
+                                            if (m <= glide_duration) glide_failed = true;
+                                            pen -= (r5 * ((m <= glide_duration) ? 1.40 : 1.15)); 
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            let req_s1 = r1 * 1.10; 
+                            if (stock1 >= req_s1) { stock1 -= req_s1; } 
+                            else {
+                                let r2 = req_s1 - stock1; stock1 = 0;
+                                let req_s2 = r2 * 1.10; 
+                                if (stock2 >= req_s2) { stock2 -= req_s2; }
+                                else {
+                                    let r3 = req_s2 - stock2; stock2 = 0;
+                                    if (isa1 >= r3) { isa1 -= r3; } 
+                                    else {
+                                        let r4 = r3 - isa1; isa1 = 0;
+                                        if (isa2 >= r4) { isa2 -= r4; } 
+                                        else {
+                                            let r5 = r4 - isa2; isa2 = 0;
+                                            if (m <= glide_duration) glide_failed = true;
+                                            pen -= (r5 * ((m <= glide_duration) ? 1.40 : 1.15)); 
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (!isFastMode) {
+                    tracking.cash_path.push(Math.max(0, cash));
+                    tracking.stock1_path.push(Math.max(0, stock1));
+                    tracking.stock2_path.push(Math.max(0, stock2));
+                    tracking.isa1_path.push(Math.max(0, isa1));
+                    tracking.isa2_path.push(Math.max(0, isa2));
+                    tracking.pen_path.push(Math.max(0, pen));
+                }
+            }
+
+            let final_wealth = Math.round(cash + stock1 + stock2 + isa1 + isa2 + pen);
+            if (isFastMode) {
+                simulations.push(final_wealth);
+            } else {
+                simulations.push({ tracking: tracking, final_wealth: final_wealth, failed: glide_failed });
+            }
+        }
+
+        if (isFastMode) {
+            simulations.sort((a,b) => a - b);
+            return {
+                p10_val: simulations[Math.floor(NUM_SIMULATIONS * 0.10)],
+                p50_val: simulations[Math.floor(NUM_SIMULATIONS * 0.50)]
+            };
+        } else {
+            simulations.sort((a,b) => a.final_wealth - b.final_wealth);
+            return {
+                p10: simulations[Math.floor(NUM_SIMULATIONS * 0.10)],
+                p50: simulations[Math.floor(NUM_SIMULATIONS * 0.50)],
+                p90: simulations[Math.floor(NUM_SIMULATIONS * 0.90)]
+            };
+        }
+    }
+
+    // --- The Async Engine Controller ---
+    async function runEngineSequence() {
+        
+        document.getElementById('chartDimmer').style.opacity = '0.4';
+        document.getElementById('matrixDimmer').style.opacity = '0.4';
+        
+        let statusEl = document.getElementById('engineStatus');
+        statusEl.className = 'engine-status status-syncing';
+        
+        statusEl.innerText = 'ENGINE: PRE-CALCULATING DEFLATION...';
+        await new Promise(r => setTimeout(r, 20)); // Yield to UI
+        
+        const payload = {
+            start_month: parseInt(document.getElementById('start_month').value),
+            start_year: parseInt(document.getElementById('start_year').value),
+            inflation: Number(document.getElementById('inflation').value),
+            current_age_years: Number(document.getElementById('current_age_years').value),
+            current_age_months: Number(document.getElementById('current_age_months').value),
+            retirement_age: Number(document.getElementById('retirement_age').value),
+            horizon_age: Number(document.getElementById('horizon_age').value),
+            sp_age: Number(document.getElementById('sp_age').value),
+            sp_amount: Number(document.getElementById('sp_amount').value),
+            phase1_expenses: Number(document.getElementById('phase1_expenses').value),
+            phase1_duration: parseInt(document.getElementById('phase1_duration').value),
+            phase2_expenses: Number(document.getElementById('phase2_expenses').value),
+            post_exit_income: Number(document.getElementById('post_exit_income').value),
+            mortgage: Number(document.getElementById('mortgage').value),
+            gogo_age: Number(document.getElementById('gogo_age').value),
+            gogo_income: Number(document.getElementById('gogo_income').value),
+            slowgo_age: Number(document.getElementById('slowgo_age').value),
+            slowgo_income: Number(document.getElementById('slowgo_income').value),
+            nogo_income: Number(document.getElementById('nogo_income').value),
+            injection_age: Number(document.getElementById('injection_age').value),
+            manual_injection: Number(document.getElementById('manual_injection').value),
+            cash: Number(document.getElementById('cash').value),
+            stock1: Number(document.getElementById('stock1').value),
+            stock2: Number(document.getElementById('stock2').value),
+            isa1: Number(document.getElementById('isa1').value),
+            isa2: Number(document.getElementById('isa2').value),
+            pension: Number(document.getElementById('pension').value),
+            unvested_rsus: Number(document.getElementById('unvested_rsus').value),
+            rsu_month: parseInt(document.getElementById('rsu_month').value),
+            rsu_schedule: document.getElementById('rsu_schedule').value
+        };
+
+        // Master Math Optimization: Pre-calculate the entire historical index into Today's Money
+        let inflation_rate = payload.inflation / 100;
+        let monthly_inflation = Math.pow(1 + inflation_rate, 1/12) - 1;
+        let ret_cash = (1 / (1 + monthly_inflation)) - 1;
+        let ret_i2 = (Math.pow(1.01, 1/12) - 1);
+
+        let precalc_table = historical_prior.map(rawAnnualReturn => {
+            let sampledMonthlyReturn = (Math.pow(1 + rawAnnualReturn, 1/12) - 1);
+            return {
+                s1: ((1 + sampledMonthlyReturn * 1.0) / (1 + monthly_inflation)) - 1,
+                s2: ((1 + sampledMonthlyReturn * 1.2) / (1 + monthly_inflation)) - 1,
+                i1: ((1 + sampledMonthlyReturn * 1.0) / (1 + monthly_inflation)) - 1,
+                pen: ((1 + sampledMonthlyReturn * 0.8) / (1 + monthly_inflation)) - 1,
+                is_down: rawAnnualReturn < 0
+            };
+        });
+
+        const precalc_returns = { ret_cash, ret_i2, table: precalc_table };
+
+        let current_age = payload.current_age_years + (payload.current_age_months / 12);
+        let glide_duration = Math.max(1, Math.round((payload.retirement_age - current_age) * 12));
+        let plan_duration = Math.max(1, Math.round((payload.horizon_age - payload.retirement_age) * 12));
+        let months_total = glide_duration + plan_duration;
+
+        statusEl.innerText = 'ENGINE: MAPPING HISTORICAL TIMELINES...';
+        await new Promise(r => setTimeout(r, 20));
+
+        let rand_matrix = generateRandomMatrix(months_total);
+
+        statusEl.innerText = 'ENGINE: RUNNING BASE PLAN...';
+        await new Promise(r => setTimeout(r, 20));
+
+        let dataBase = runMonteCarlo(0, 0, rand_matrix, false, payload, null, precalc_returns);
+        let dataPlus1k = runMonteCarlo(1000, 0, rand_matrix, false, payload, null, precalc_returns);
+        let dataPlus2k = runMonteCarlo(2000, 0, rand_matrix, false, payload, null, precalc_returns);
+
+        statusEl.innerText = 'ENGINE: SOLVING CRASH LIMIT (10th)...';
+        await new Promise(r => setTimeout(r, 20));
+
+        let min_gogo = 0, max_gogo = 50000, safe_gogo_10 = 0;
+        for(let i = 0; i < 16; i++) { 
+            let test_gogo = (min_gogo + max_gogo) / 2;
+            let result = runMonteCarlo(0, test_gogo, rand_matrix, true, payload, null, precalc_returns);
+            if(result.p10_val > 0) { min_gogo = test_gogo; safe_gogo_10 = test_gogo; } 
+            else { max_gogo = test_gogo; }
+        }
+        safe_gogo_10 = Math.round(safe_gogo_10);
+
+        statusEl.innerText = 'ENGINE: SOLVING MEDIAN LIMIT (50th)...';
+        await new Promise(r => setTimeout(r, 20));
+
+        min_gogo = 0; max_gogo = 50000; let safe_gogo_50 = 0;
+        for(let i = 0; i < 16; i++) {
+            let test_gogo = (min_gogo + max_gogo) / 2;
+            let result = runMonteCarlo(0, test_gogo, rand_matrix, true, payload, null, precalc_returns);
+            if(result.p50_val > 0) { min_gogo = test_gogo; safe_gogo_50 = test_gogo; } 
+            else { max_gogo = test_gogo; }
+        }
+        safe_gogo_50 = Math.round(safe_gogo_50);
+
+        statusEl.innerText = 'ENGINE: SOLVING EQUITY RELEASE...';
+        await new Promise(r => setTimeout(r, 20));
+
+        let req_injection = 0;
+        let baseline_res = runMonteCarlo(0, 0, rand_matrix, true, payload, 0, precalc_returns); 
+        if (baseline_res.p10_val < 0) {
+            let min_inj = 0, max_inj = 5000000, safe_inj = 5000000;
+            for(let i = 0; i < 24; i++) { 
+                let test_inj = (min_inj + max_inj) / 2;
+                let res = runMonteCarlo(0, 0, rand_matrix, true, payload, test_inj, precalc_returns);
+                if(res.p10_val >= 0) {
+                    safe_inj = test_inj;
+                    max_inj = test_inj; 
+                } else {
+                    min_inj = test_inj; 
+                }
+            }
+            req_injection = Math.round(safe_inj);
+        }
+
+        renderMatrix(dataBase, dataPlus1k, dataPlus2k);
+        renderChartAndReadout(dataBase.p50, safe_gogo_10, safe_gogo_50, req_injection, payload);
+
+        document.getElementById('chartDimmer').style.opacity = '1';
+        document.getElementById('matrixDimmer').style.opacity = '1';
+        
+        statusEl.innerText = 'ENGINE: READY';
+        statusEl.className = 'engine-status status-ready';
+    }
+
+    function renderChartAndReadout(simData, safe_gogo_10, safe_gogo_50, req_injection, payload) {
+        
+        let current_age = payload.current_age_years + (payload.current_age_months / 12);
+        let glide_duration = Math.max(1, Math.round((payload.retirement_age - current_age) * 12));
+        let plan_duration = Math.max(1, Math.round((payload.horizon_age - payload.retirement_age) * 12));
+        let months_total = glide_duration + plan_duration;
+        
+        document.getElementById('lbl_readout_age').innerText = payload.horizon_age;
+        document.getElementById('lbl_inj_age').innerText = payload.injection_age;
+
+        let labels = ["Start"];
+        let baseDate = new Date(payload.start_year, payload.start_month, 1);
+        
+        for (let m = 1; m <= months_total; m++) {
+            let currentMonth = new Date(baseDate);
+            currentMonth.setMonth(baseDate.getMonth() + m);
+            labels.push(currentMonth.toLocaleString('default', { month: 'short', year: '2-digit' }));
+        }
+
+        try {
+            if (typeof Chart !== 'undefined') {
+                const ctx = document.getElementById('detChart').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Pension', data: simData.tracking.pen_path, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.2)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true },
+                            { label: 'ISA 2 (Bonds)', data: simData.tracking.isa2_path, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.2)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true },
+                            { label: 'ISA 1 (Growth)', data: simData.tracking.isa1_path, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.2)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true },
+                            { label: 'Stock 2 (Company)', data: simData.tracking.stock2_path, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.2)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true },
+                            { label: 'Stock 1 (Broad)', data: simData.tracking.stock1_path, borderColor: '#ec4899', backgroundColor: 'rgba(236, 72, 153, 0.2)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true },
+                            { label: 'Cash Buffer', data: simData.tracking.cash_path, borderColor: '#94a3b8', backgroundColor: 'rgba(148, 163, 184, 0.2)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: { duration: 0 },
+                        plugins: {
+                            legend: { labels: { color: '#f8fafc' } },
+                            tooltip: { mode: 'index', intersect: false }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#94a3b8', maxTicksLimit: 14 }, grid: { color: '#334155' } },
+                            y: { stacked: true, ticks: { color: '#94a3b8', callback: (v) => '£' + (v/1000).toFixed(0) + 'k' }, grid: { color: '#334155' } }
+                        }
+                    }
+                });
+            } else {
+                console.warn("Chart.js failed to load from CDN. Graph skipped, but math continues.");
+            }
+        } catch(e) {
+            console.error("Graph rendering error:", e);
+        }
+
+        // 1. Base Legacy Readout
+        let readoutEl = document.getElementById('legacyReadout');
+        if (simData.final_wealth <= 0) {
+            readoutEl.className = "readout-stat stat-danger";
+            readoutEl.innerText = "FAILED";
+        } else {
+            readoutEl.innerText = `£${simData.final_wealth.toLocaleString()}`;
+            if (simData.final_wealth >= 500000) readoutEl.className = "readout-stat stat-elite";
+            else if (simData.final_wealth >= 100000) readoutEl.className = "readout-stat stat-success";
+            else readoutEl.className = "readout-stat stat-warning";
+        }
+
+        // 2. 10th Percentile Go-Go Readout
+        let gogo10El = document.getElementById('safeGogoReadout');
+        if (safe_gogo_10 <= 0) {
+            gogo10El.className = "readout-stat stat-danger";
+            gogo10El.innerText = "BASE TOO HIGH";
+        } else {
+            gogo10El.className = "readout-stat stat-warning";
+            gogo10El.innerText = `£${safe_gogo_10.toLocaleString()} / mo`;
+        }
+
+        // 3. 50th Percentile Go-Go Readout
+        let gogo50El = document.getElementById('medianGogoReadout');
+        if (safe_gogo_50 <= 0) {
+            gogo50El.className = "readout-stat stat-danger";
+            gogo50El.innerText = "BASE TOO HIGH";
+        } else {
+            gogo50El.className = "readout-stat stat-success";
+            gogo50El.innerText = `£${safe_gogo_50.toLocaleString()} / mo`;
+        }
+
+        // 4. Required Equity Release (10th)
+        let reqInjEl = document.getElementById('reqInjectionReadout');
+        if (req_injection === 0) {
+            reqInjEl.className = "readout-stat stat-success";
+            reqInjEl.innerText = "NOT NEEDED";
+        } else {
+            reqInjEl.className = "readout-stat stat-special";
+            reqInjEl.innerText = `£${req_injection.toLocaleString()}`;
+        }
+    }
+
+    function getColorClass(value) {
+        if (value <= 0) return 'val-danger';
+        if (value > 0 && value < 200000) return 'val-warning';
+        if (value >= 200000 && value < 500000) return 'val-success';
+        return 'val-elite';
+    }
+
+    function renderMatrix(dataBase, dataPlus1k, dataPlus2k) {
+        let tbody = document.getElementById('matrixBody');
+        tbody.innerHTML = '';
+
+        let scenariosToRender = [
+            { name: `Base Phased Plan`, dataObj: dataBase },
+            { name: `Base + £1k/mo (All Phases)`, dataObj: dataPlus1k },
+            { name: `Base + £2k/mo (All Phases)`, dataObj: dataPlus2k }
+        ];
+
+        scenariosToRender.forEach(scenario => {
+            let tr = document.createElement('tr');
+            let th = document.createElement('td');
+            th.className = 'row-header';
+            th.innerHTML = `<strong>${scenario.name}</strong>`;
+            tr.appendChild(th);
+
+            [scenario.dataObj.p10, scenario.dataObj.p50, scenario.dataObj.p90].forEach(sim => {
+                let td = document.createElement('td');
+                if (sim.final_wealth <= 0) {
+                    td.innerText = "FAILED";
+                    td.className = "val-danger";
+                } else {
+                    td.innerText = `£${sim.final_wealth.toLocaleString()}`;
+                    td.className = getColorClass(sim.final_wealth);
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Run first calculation on load
+    window.onload = runEngineSequence;
+</script>
+
+</body>
+</html>
